@@ -3,5 +3,5 @@ A Laravel package for user authentication with OTP, password, and Sanctum token-
 
 ## Installation
 ```bash
-composer require mohsen/userauthcenter
+composer require mediadotonedev/userauthcenter
 php artisan userauthcenter:install
