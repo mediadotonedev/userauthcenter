@@ -1,9 +1,9 @@
 <?php
 
-namespace Mohsen\UserAuthCenter\Tests;
+namespace Mediadotonedev\UserAuthCenter\Tests;
 
 use Orchestra\Testbench\TestCase as Orchestra;
-use Mohsen\UserAuthCenter\UserauthcenterServiceProvider;
+use Mediadotonedev\UserAuthCenter\UserauthcenterServiceProvider;
 
 class TestCase extends Orchestra
 {
