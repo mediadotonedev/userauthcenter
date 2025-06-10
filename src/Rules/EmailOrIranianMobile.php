@@ -1,6 +1,6 @@
 <?php
 
-namespace Mohsen\UserAuthCenter\Rules;
+namespace Mediadotonedev\UserAuthCenter\Rules;
 
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
