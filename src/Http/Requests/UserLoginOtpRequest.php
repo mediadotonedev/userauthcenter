@@ -1,9 +1,9 @@
 <?php
 
 
-namespace Mohsen\UserAuthCenter\Http\Requests;
+namespace Mediadotonedev\UserAuthCenter\Http\Requests;
 
-use Mohsen\UserAuthCenter\Rules\EmailOrIranianMobile;
+use Mediadotonedev\UserAuthCenter\Rules\EmailOrIranianMobile;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Http\Exceptions\HttpResponseException;
