@@ -1,7 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Mohsen\UserAuthCenter\Http\Controllers\UserAuthController;
+use Mediadotonedev\UserAuthCenter\Http\Controllers\UserAuthController;
 
 Route::prefix(config('userauthcenter.auth.route_prefix', 'auth'))->middleware('api')->group(function () {
     Route::post('/check', [UserAuthController::class, 'check']);
