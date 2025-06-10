@@ -1,6 +1,6 @@
 <?php
 
-namespace Mohsen\UserAuthCenter\Tests;
+namespace Mediadotonedev\UserAuthCenter\Tests;
 
 use Illuminate\Support\Facades\Schema;
 
