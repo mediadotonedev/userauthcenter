@@ -6,7 +6,7 @@
     "authors": [
         {
             "name": "Mediadotonedev",
-            "email": "mdeia@dotone.ir"
+            "email": "info@mediadotonedev.com"
         }
     ],
     "require": {
@@ -14,7 +14,8 @@
         "illuminate/support": "^10.0|^11.0|^12.0",
         "illuminate/auth": "^10.0|^11.0|^12.0",
         "illuminate/database": "^10.0|^11.0|^12.0",
-        "illuminate/http": "^10.0|^11.0|^12.0"
+        "illuminate/http": "^10.0|^11.0|^12.0",
+        "laravel/sanctum": "^3.0|^4.0"
     },
     "require-dev": {
         "orchestra/testbench": "^8.0|^9.0",
@@ -33,8 +34,16 @@
     "extra": {
         "laravel": {
             "providers": [
-                "Mediadotonedev\\UserAuthCenter\\UserAuthCenterServiceProvider"
-            ]
+                "Mediadotonedev\\UserAuthCenter\\UserauthcenterServiceProvider"
+            ],
+            "publishable": {
+                "config": {
+                    "userauthcenter.php": "config/userauthcenter.php"
+                },
+                "migrations": {
+                    "2025_06_08_103828_update_users_table.php": "database/migrations/2025_06_08_103828_update_users_table.php"
+                }
+            }
         }
     },
     "minimum-stability": "dev",

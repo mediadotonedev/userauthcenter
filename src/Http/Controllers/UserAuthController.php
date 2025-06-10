@@ -1,16 +1,14 @@
 <?php
 
-namespace Mediadotonedev\UserAuthCenter\Http\Controllers;
+namespace App\Http\Controllers;
 
-use Mediadotonedev\UserAuthCenter\Http\Requests\UserCheckRequest;
-use Mediadotonedev\UserAuthCenter\Http\Requests\UserRegisterRequest;
-use Mediadotonedev\UserAuthCenter\Http\Requests\UserRegisterVerifyRequest;
-use Mediadotonedev\UserAuthCenter\Http\Requests\UserLoginOtpRequest;
-use Mediadotonedev\UserAuthCenter\Http\Requests\UserLoginOtpVerifyRequest;
-use Mediadotonedev\UserAuthCenter\Http\Requests\UserLoginPasswordRequest;
-use Mediadotonedev\UserAuthCenter\Http\Requests\UserResendRequest;
-use Mediadotonedev\UserAuthCenter\Services\UserAuthService;
-use Illuminate\Http\JsonResponse;
+use App\Http\Requests\UserCheckRequest;
+use App\Http\Requests\UserRegisterRequest;
+use App\Http\Requests\UserRegisterVerifyRequest;
+use App\Http\Requests\UserLoginOtpRequest;
+use App\Http\Requests\UserLoginOtpVerifyRequest;
+use App\Http\Requests\UserLoginPasswordRequest;
+use App\Services\UserAuthService;
 
 /**
  * @OA\Post(
@@ -265,46 +263,6 @@ use Illuminate\Http\JsonResponse;
  * )
  */
 
-/**
- * @OA\Post(
- *     path="/api/auth/resend-otp",
- *     tags={"Authentication"},
- *     summary="Resend OTP for registration or login",
- *     description="Resends a one-time password (OTP) to the user's email or phone.",
- *     @OA\RequestBody(
- *         required=true,
- *         @OA\JsonContent(
- *             required={"username"},
- *             @OA\Property(property="username", type="string", example="user@example.com", description="User's email or phone number")
- *         )
- *     ),
- *     @OA\Response(
- *         response=200,
- *         description="OTP resent successfully",
- *         @OA\JsonContent(
- *             type="object",
- *             @OA\Property(property="message", type="string", example="OTP resent to your email/phone")
- *         )
- *     ),
- *     @OA\Response(
- *         response=400,
- *         description="Invalid input",
- *         @OA\JsonContent(
- *             type="object",
- *             @OA\Property(property="error", type="string", example="Invalid username")
- *         )
- *     ),
- *     @OA\Response(
- *         response=401,
- *         description="Unauthorized",
- *         @OA\JsonContent(
- *             type="object",
- *             @OA\Property(property="error", type="string", example="Invalid API key")
- *         )
- *     )
- * )
- */
-
 class UserAuthController extends Controller
 {
     protected $userAuthService;
@@ -314,38 +272,33 @@ class UserAuthController extends Controller
         $this->userAuthService = new UserAuthService();
     }
 
-    public function check(UserCheckRequest $request): JsonResponse
+    public function check(UserCheckRequest $request)
     {
         return $this->userAuthService->userCheck($request);
     }
 
-    public function register(UserRegisterRequest $request): JsonResponse
+    public function register(UserRegisterRequest $request)
     {
         return $this->userAuthService->userRegister($request);
     }
 
-    public function registerVerify(UserRegisterVerifyRequest $request): JsonResponse
+    public function registerVerify(UserRegisterVerifyRequest $request)
     {
         return $this->userAuthService->userRegisterVerify($request);
     }
 
-    public function logiByOtp(UserLoginOtpRequest $request): JsonResponse
+    public function logiByOtp(UserLoginOtpRequest $request)
     {
         return $this->userAuthService->userLoginOtp($request);
     }
 
-    public function logiByOtpVerify(UserLoginOtpVerifyRequest $request): JsonResponse
+    public function logiByOtpVerify(UserLoginOtpVerifyRequest $request)
     {
         return $this->userAuthService->userLoginOtpVerify($request);
     }
 
-    public function logiByPassword(UserLoginPasswordRequest $request): JsonResponse
+    public function logiByPassword(UserLoginPasswordRequest $request)
     {
         return $this->userAuthService->userLogiByPassword($request);
-    }
-
-    public function resendOtp(UserResendRequest $request): JsonResponse
-    {
-        return $this->userAuthService->resendOtpCode($request);
     }
 }

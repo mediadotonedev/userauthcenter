@@ -1,10 +1,9 @@
 <?php
 
+namespace App\Http\Requests;
 
-namespace Mediadotonedev\UserAuthCenter\Http\Requests;
-
-use Mediadotonedev\UserAuthCenter\Rules\EmailOrIranianMobile;
 use Illuminate\Foundation\Http\FormRequest;
+use App\Rules\EmailOrIranianMobile;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Http\Exceptions\HttpResponseException;
 

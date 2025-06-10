@@ -1,12 +1,11 @@
 <?php
 
-namespace Mohsen\UserAuthCenter\Http\Requests;
-
+namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use App\Rules\EmailOrIranianMobile;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Http\Exceptions\HttpResponseException;
-use Mohsen\UserAuthCenter\Rules\EmailOrIranianMobile;
 
 class UserLoginOtpVerifyRequest extends FormRequest
 {
