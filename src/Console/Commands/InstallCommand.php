@@ -1,5 +1,5 @@
 <?php
-namespace Mohsen\UserAuthCenter\Console\Commands;
+namespace mediadotonedev\UserAuthCenter\Console\Commands;
 
 use Illuminate\Console\Command;
 
