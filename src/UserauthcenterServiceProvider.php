@@ -4,7 +4,7 @@ namespace Mediadotonedev\UserAuthCenter;
 
 use Illuminate\Support\ServiceProvider;
 
-class UserauthcenterServiceProvider extends ServiceProvider
+class UserAuthCenterServiceProvider extends ServiceProvider
 {
     public function register()
     {
@@ -16,22 +16,29 @@ class UserauthcenterServiceProvider extends ServiceProvider
         // Publish configuration
         $this->publishes([
             __DIR__ . '/config/userauthcenter.php' => config_path('userauthcenter.php'),
-        ], 'config');
+        ], 'userauthcenter-config');
 
         // Publish migrations
         $this->publishes([
             __DIR__ . '/database/migrations' => database_path('migrations'),
-        ], 'migrations');
+        ], 'userauthcenter-migrations');
 
-        // Load routes
-        $this->loadRoutesFrom(__DIR__ . '/routes/apiuserauthcenter.php');
+        // Publish routes
+        $this->publishes([
+            __DIR__ . '/routes/api.php' => base_path('routes/userauthcenter-api.php'),
+        ], 'userauthcenter-routes');
 
         // Load migrations
         $this->loadMigrationsFrom(__DIR__ . '/database/migrations');
 
-        // Publish Swagger configuration
-        $this->publishes([
-            __DIR__ . '/config/l5-swagger.php' => config_path('l5-swagger.php'),
-        ], 'l5-swagger-config');
+        // Load routes
+        $this->loadRoutesFrom(__DIR__ . '/routes/api.php');
+
+        // Register commands
+        if ($this->app->runningInConsole()) {
+            $this->commands([
+                Console\Commands\InstallCommand::class,
+            ]);
+        }
     }
 }
