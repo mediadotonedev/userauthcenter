@@ -5,6 +5,8 @@ namespace App\Services;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Validator;
+use App\Models\User;
 
 class UserAuthService
 {
@@ -60,12 +62,70 @@ class UserAuthService
         $data = $request->validated();
         $apiUrl = $this->baseUrl . 'register/verify';
         $response = Http::withHeaders([
-            'Authorization' => "Bearer {$this->apiKey}",
-            'Accept' => 'application/json',
+                'Authorization' => "Bearer {$this->apiKey}",
+                'Accept' => 'application/json',
             ])->post($apiUrl,[
                 'username'=> $data['username'],
                 'code' => $data['code'],
             ]);
+            if($response->successful())
+            {
+                $responseData = $response->json();
+
+                // بررسی وجود کلیدهای مورد انتظار در پاسخ
+                if (!isset($responseData['data']['client'])) {
+                    return response()->json([
+                        'message' => 'Invalid API response format',
+                        'response' => $responseData,
+                    ], 400);
+                }
+
+                $clientData = $responseData['data']['client'];
+
+                $clientValidator = Validator::make($clientData, [
+                    'client_id' => 'required|integer',
+                    'name' => 'required|string|max:255',
+                    'phone' => 'nullable|string|unique:users,phone',
+                    'email' => 'nullable|string|unique:users,email',
+                    'gender' => 'nullable|in:male,female',
+                ]);
+
+                if ($clientValidator->fails()) {
+                    return response()->json([
+                        'message' => 'Invalid client data',
+                        'errors' => $clientValidator->errors(),
+                    ], 422);
+                }
+                try
+                {
+                    $user = User::updateOrCreate(
+                    ['id' => $clientData['client_id']],
+                    [
+                        'fk_client_id' => $clientData['client_id'],
+                        'name' => $clientData['name'],
+                        'avatar' => $clientData['avatar'],
+                        'nickname' => $clientData['nickname'],
+                        'phone' => $clientData['phone'],
+                        'phone_verified_at' => $clientData['phone_verified_at'],
+                        'email' => $clientData['email'],
+                        'email_verified_at' => $clientData['email_verified_at'],
+                        'birth_date' => $clientData['birth_date'],
+                        'gender' => $clientData['gender'],
+                    ]);
+                        return response()->json([
+                            'message' => 'User registered successfully',
+                            'user' => $user,
+                        ], 200);
+                    }
+                catch (\Exception $e)
+                {
+                    return response()->json([
+                        'message' => 'Failed to save user',
+                        'error' => $e->getMessage(),
+                    ], 500);
+                }
+
+            }
         return response()->json($response->json(), $response->status());
     }
 
