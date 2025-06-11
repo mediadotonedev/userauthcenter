@@ -104,7 +104,7 @@ php artisan vendor:publish --tag=userauthcenter-rules
 To publish the `User.php` model to `app/Models/`:
 
 ```bash
-php artisan vendor:publish --tag=userauthcenter-models
+php artisan vendor:publish --tag=userauthcenter-models --force
 ```
 
 **Important:** Publishing the `User.php` model might conflict with your existing `App\Models\User.php`. Exercise caution and merge changes manually if necessary, or consider using a different model name within your package if a direct conflict is undesirable.
