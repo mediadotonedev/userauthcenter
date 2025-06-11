@@ -28,6 +28,7 @@ class User extends Authenticatable
         'phone_verified_at',
         'birth_date',
         'gender',
+        'fk_client_id',
     ];
     /**
      * The attributes that should be hidden for serialization.
