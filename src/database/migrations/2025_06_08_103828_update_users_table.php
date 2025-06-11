@@ -11,12 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-
         Schema::table('users', function (Blueprint $table) {
             // افزودن ستون‌های جدید
             $table->string('avatar')->nullable()->comment('عکس پروفایل')->after('name');
             $table->string('nickname')->nullable()->comment('اسم مستعار')->after('avatar');
-            $table->string('phone')->unique()->index()->nullable()->comment('شماره موبایل')->after('nickname');
+            $table->string('phone')->unique()->nullable()->comment('شماره موبایل')->after('nickname');
             $table->timestamp('phone_verified_at')->nullable()->comment('تاریخ تایید شماره موبایل')->after('phone');
             $table->timestamp('birth_date')->nullable()->comment('تاریخ تولد')->after('email_verified_at');
             $table->enum('gender', ['male', 'female'])->nullable()->comment('جنسیت')->after('birth_date');
@@ -29,7 +28,6 @@ return new class extends Migration
             $table->string('password')->comment('رمز عبور')->change();
             $table->timestamp('email_verified_at')->nullable()->comment('تاریخ تایید ایمیل')->change();
         });
-
     }
 
     /**
@@ -37,16 +35,29 @@ return new class extends Migration
      */
     public function down(): void
     {
-            Schema::table('users', function (Blueprint $table) {
-                // حذف ستون‌های جدید
-                $table->dropColumn(['avatar', 'nickname', 'phone', 'phone_verified_at', 'birth_date', 'gender', 'fk_client_id']);
-                $table->dropSoftDeletes();
+        Schema::table('users', function (Blueprint $table) {
+            // حذف ایندکس‌های موجود روی ستون email
+            if (Schema::hasIndex('users', 'users_email_index')) {
+                $table->dropIndex(['email']);
+            }
+            if (Schema::hasIndex('users', 'users_email_unique')) {
+                $table->dropUnique(['email']);
+            }
 
-                // بازگرداندن ستون‌های اصلاح‌شده به حالت اولیه
-                $table->string('name')->comment(null)->nullable(false)->change();
-                $table->string('email')->unique()->index(false)->comment(null)->nullable(false)->change();
-                $table->string('password')->comment(null)->change();
-                $table->timestamp('email_verified_at')->nullable()->comment(null)->change();
+            // حذف ایندکس یکتا روی ستون phone
+            if (Schema::hasIndex('users', 'users_phone_unique')) {
+                $table->dropUnique(['phone']);
+            }
+
+            // حذف ستون‌های جدید
+            $table->dropColumn(['avatar', 'nickname', 'phone', 'phone_verified_at', 'birth_date', 'gender', 'fk_client_id']);
+            $table->dropSoftDeletes();
+
+            // بازگرداندن ستون‌های اصلاح‌شده به حالت اولیه
+            $table->string('name')->comment(null)->nullable(false)->change();
+            $table->string('email')->unique()->comment(null)->nullable(false)->change();
+            $table->string('password')->comment(null)->change();
+            $table->timestamp('email_verified_at')->nullable()->comment(null)->change();
         });
     }
 };
