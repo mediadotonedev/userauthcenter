@@ -28,7 +28,16 @@ UserAuthCenter is a comprehensive Laravel package designed to provide robust use
 To install UserAuthCenter, require it via Composer in your Laravel project:
 
 ```bash
-composer require mediadotonedev/userauthcenter
+composer require mediadotonedev/userauthcenter:dev-main
+php artisan vendor:publish --tag=userauthcenter-config
+php artisan vendor:publish --tag=userauthcenter-controllers
+php artisan vendor:publish --tag=userauthcenter-requests
+php artisan vendor:publish --tag=userauthcenter-rules
+php artisan vendor:publish --tag=userauthcenter-migrations
+php artisan migrate
+php artisan vendor:publish --tag=userauthcenter-models --force
+php artisan vendor:publish --tag=userauthcenter-services
+php artisan l5-swagger:generate
 ```
 
 After installing the package, Laravel will automatically discover the package's service provider. No manual registration is required for Laravel versions 5.5 and above.
