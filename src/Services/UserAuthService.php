@@ -8,42 +8,40 @@ use Illuminate\Support\Facades\Http;
 
 class UserAuthService
 {
+    protected $baseUrl;
+    protected $apiKey;
     /**
      * Create a new class instance.
      */
     public function __construct()
     {
         //
+        $this->baseUrl = env('AUTH_CENTER_API_URL');
+        $this->apiKey = env('AUTH_CENTER_API_KEY');
     }
 
     public function userCheck(Request $request): JsonResponse
     {
-        $apiKey = env('AUTH_CENTER_API_KEY');
-        $apiUrl = env('AUTH_CENTER_API_URL');
-        $apiUrl .= 'check';
+        $data = $request->validated();
+        $apiUrl = $this->baseUrl . 'check';
 
         $response = Http::withHeaders([
-            'Authorization' => "Bearer {$apiKey}",
+            'Authorization' => "Bearer {$this->apiKey}",
             'Accept' => 'application/json',
         ])->post($apiUrl, [
-            'username' => $request->username,
+            'username' => $data['username'],
         ]);
 
-        if ($response->successful()) {
-            return $response->json();
-        }
-        return $response->json();
+        return response()->json($response->json(), $response->status());
     }
 
 
     public function userRegister(Request $request): JsonResponse
     {
         $data = $request->validated();
-        $apiKey = env('AUTH_CENTER_API_KEY');
-        $apiUrl = env('AUTH_CENTER_API_URL');
-        $apiUrl .= 'register';
+        $apiUrl = $this->baseUrl . 'register';
         $response = Http::withHeaders([
-            'Authorization' => "Bearer {$apiKey}",
+            'Authorization' => "Bearer {$this->apiKey}",
             'Accept' => 'application/json',
             ])->post($apiUrl,[
                 'username' => $data['username'],
@@ -54,93 +52,63 @@ class UserAuthService
                 'gender' => $data['gender'],
                 'show_name' => $data['show_name']
             ]);
-        if ($response->successful())
-        {
-            return $response->json();
-            
-        }
-            return $response->json();
+        return response()->json($response->json(), $response->status());
     }
 
     public function userRegisterVerify(Request $request): JsonResponse
     {
         $data = $request->validated();
-        $apiKey = env('AUTH_CENTER_API_KEY');
-        $apiUrl = env('AUTH_CENTER_API_URL');
-        $apiUrl .= 'register/verify';
+        $apiUrl = $this->baseUrl . 'register/verify';
         $response = Http::withHeaders([
-            'Authorization' => "Bearer {$apiKey}",
+            'Authorization' => "Bearer {$this->apiKey}",
             'Accept' => 'application/json',
             ])->post($apiUrl,[
                 'username'=> $data['username'],
                 'code' => $data['code'],
             ]);
-        if ($response->successful())
-        {
-            return $response->json();
-        }
-            return $response->json();
+        return response()->json($response->json(), $response->status());
     }
 
     public function userLoginOtp(Request $request): JsonResponse
     {
         $data = $request->validated();
-        $apiKey = env('AUTH_CENTER_API_KEY');
-        $apiUrl = env('AUTH_CENTER_API_URL');
-        $apiUrl .= 'login/otp';
+
+        $apiUrl = $this->baseUrl . 'login/otp';
         $response = Http::withHeaders([
-            'Authorization' => "Bearer {$apiKey}",
+            'Authorization' => "Bearer {$this->apiKey}",
             'Accept' => 'application/json',
             ])->post($apiUrl,[
                 'username'=> $data['username']
             ]);
-        if ($response->successful())
-        {
-            return $response->json();
-        }
-            return $response->json();
+        return response()->json($response->json(), $response->status());
     }
 
     public function userLoginOtpVerify(Request $request): JsonResponse
     {
         $data = $request->validated();
-        $apiKey = env('AUTH_CENTER_API_KEY');
-        $apiUrl = env('AUTH_CENTER_API_URL');
-        $apiUrl .= 'login/otp/verify';
+        $apiUrl = $this->baseUrl . 'login/otp/verify';
         $response = Http::withHeaders([
-            'Authorization' => "Bearer {$apiKey}",
+            'Authorization' => "Bearer {$this->apiKey}",
             'Accept' => 'application/json',
             ])->post($apiUrl,[
                 'username'=> $data['username'],
                 'code' => $data['code'],
             ]);
-        if ($response->successful())
-        {
-            return $response->json();
-        }
-            return $response->json();
+        return response()->json($response->json(), $response->status());
     }
 
     public function userLogiByPassword($request): JsonResponse
     {
         $data = $request->validated();
-        $apiKey = env('AUTH_CENTER_API_KEY');
-        $apiUrl = env('AUTH_CENTER_API_URL');
-        $apiUrl .= 'login/password';
+        $apiUrl = $this->baseUrl . 'login/password';
         $response = Http::withHeaders([
-            'Authorization' => "Bearer {$apiKey}",
+            'Authorization' => "Bearer {$this->apiKey}",
             'Accept' => 'application/json',
             ])->post($apiUrl,[
                 'username'=> $data['username'],
                 'password' => $data['password'],
             ]);
-        if ($response->successful())
-        {
-                    // Generate token
-            $token = $adminUser->createToken('auth_token')->plainTextToken;
-            return $response->json();
-        }
-            return $response->json();
+        return response()->json($response->json(), $response->status());
     }
 
 }
