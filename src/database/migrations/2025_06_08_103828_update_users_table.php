@@ -15,11 +15,11 @@ return new class extends Migration
             // افزودن ستون‌های جدید
             $table->string('avatar')->nullable()->comment('عکس پروفایل')->after('name');
             $table->string('nickname')->nullable()->comment('اسم مستعار')->after('avatar');
-            $table->string('phone')->unique()->nullable()->comment('شماره موبایل')->after('nickname');
+            $table->string('phone')->index()->unique()->nullable()->comment('شماره موبایل')->after('nickname');
             $table->timestamp('phone_verified_at')->nullable()->comment('تاریخ تایید شماره موبایل')->after('phone');
             $table->timestamp('birth_date')->nullable()->comment('تاریخ تولد')->after('email_verified_at');
             $table->enum('gender', ['male', 'female'])->nullable()->comment('جنسیت')->after('birth_date');
-            $table->bigInteger('fk_client_id')->nullable()->comment('آیدی کاربر در سیستم مرکزی');
+            $table->bigInteger('fk_client_id')->index()->unique()->nullable()->comment('آیدی کاربر در سیستم مرکزی');
             $table->softDeletes()->comment('حذف نرم');
 
             // اصلاح ستون‌های موجود
@@ -44,9 +44,22 @@ return new class extends Migration
                 $table->dropUnique(['email']);
             }
 
+            // حذف ایندکس‌های موجود روی ستون phone
+            if (Schema::hasIndex('users', 'users_phone_index')) {
+                $table->dropIndex(['phone']);
+            }
             // حذف ایندکس یکتا روی ستون phone
             if (Schema::hasIndex('users', 'users_phone_unique')) {
                 $table->dropUnique(['phone']);
+            }
+
+            // حذف ایندکس‌های موجود روی ستون fk_client_id
+            if (Schema::hasIndex('users', 'users_fk_client_id_index')) {
+                $table->dropIndex(['fk_client_id']);
+            }
+            // حذف ایندکس یکتا روی ستون fk_client_id
+            if (Schema::hasIndex('users', 'users_fk_client_id_unique')) {
+                $table->dropUnique(['fk_client_id']);
             }
 
             // حذف ستون‌های جدید
