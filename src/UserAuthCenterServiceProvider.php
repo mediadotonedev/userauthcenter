@@ -53,7 +53,7 @@ class UserAuthCenterServiceProvider extends ServiceProvider
         // Path adjusted based on your file structure: userauthcenter/src/Models/User.php
         $this->publishes([
             __DIR__ . '/Models/User.php' => app_path('Models/User.php'),
-        ], 'userauthcenter-models');
+        ], 'userauthcenter-models', true);
 
         // --- NEW: Publish Services ---
         // Path adjusted based on your file structure: userauthcenter/src/Services/
