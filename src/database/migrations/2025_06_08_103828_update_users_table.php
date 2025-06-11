@@ -20,6 +20,7 @@ return new class extends Migration
             $table->timestamp('phone_verified_at')->nullable()->comment('تاریخ تایید شماره موبایل')->after('phone');
             $table->timestamp('birth_date')->nullable()->comment('تاریخ تولد')->after('email_verified_at');
             $table->enum('gender', ['male', 'female'])->nullable()->comment('جنسیت')->after('birth_date');
+            $table->bigInteger('fk_client_id')->nullable()->comment('آیدی کاربر در سیستم مرکزی');
             $table->softDeletes()->comment('حذف نرم');
 
             // اصلاح ستون‌های موجود
@@ -38,7 +39,7 @@ return new class extends Migration
     {
             Schema::table('users', function (Blueprint $table) {
                 // حذف ستون‌های جدید
-                $table->dropColumn(['avatar', 'nickname', 'phone', 'phone_verified_at', 'birth_date', 'gender']);
+                $table->dropColumn(['avatar', 'nickname', 'phone', 'phone_verified_at', 'birth_date', 'gender', 'fk_client_id']);
                 $table->dropSoftDeletes();
 
                 // بازگرداندن ستون‌های اصلاح‌شده به حالت اولیه
