@@ -25,7 +25,7 @@ return new class extends Migration
             // اصلاح ستون‌های موجود
             $table->string('name')->comment('نام کاربر')->nullable()->change();
             $table->string('email')->nullable()->index()->comment('ایمیل')->change();
-            $table->string('password')->comment('رمز عبور')->change();
+            $table->string('password')->nullable()->comment('رمز عبور')->change();
             $table->timestamp('email_verified_at')->nullable()->comment('تاریخ تایید ایمیل')->change();
         });
     }
