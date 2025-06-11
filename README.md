@@ -178,13 +178,13 @@ Typically, these routes would handle:
 
 Since you can publish various components like controllers, requests, rules, and models, you have the flexibility to extend or override the package's default behavior by modifying the published files.
 
-## Contribution
-
 ## update package 
 ```bash
 composer dump-autoload
 php artisan config:clear
 ```
+
+## Contribution
 
 Feel free to contribute to the UserAuthCenter package. Bug reports, feature requests, and pull requests are welcome.
 
