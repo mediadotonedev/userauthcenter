@@ -18,6 +18,7 @@ Route::prefix('api')->middleware('api')->group(function () {
 	Route::post('login/password', [UserAuthController::class, 'logiByPassword'])->name('user.login.password');
 	Route::post('login/otp', [UserAuthController::class, 'logiByOtp'])->name('user.login.otp');
 	Route::post('login/otp/verify', [UserAuthController::class, 'logiByOtpVerify'])->name('user.login.otp.verify');
+		
 	});
 
 });
