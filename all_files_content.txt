@@ -1,0 +1,1478 @@
+
+--- File: ./README.md ---
+
+
+# UserAuthCenter - Laravel User Authentication Package
+
+UserAuthCenter is a comprehensive Laravel package designed to provide robust user authentication functionalities, including OTP (One-Time Password) and traditional password-based authentication. This package aims to simplify the integration of advanced authentication features into your Laravel applications.
+
+## Table of Contents
+
+-   [Installation](#installation)
+-   [Configuration](#configuration)
+-   [Database Migrations](#database-migrations)
+-   [Publishing Files](#publishing-files)
+    -   [Configuration File](#configuration-file)
+    -   [Controllers](#controllers)
+    -   [Requests](#requests)
+    -   [Rules](#rules)
+    -   [Models](#models)
+    -   [Services](#services)
+    -   [Swagger Configuration](#swagger-configuration)
+    -   [All Publishable Files](#all-publishable-files)
+-   [Usage](#usage)
+    -   [API Routes](#api-routes)
+    -   [Extending Functionality](#extending-functionality)
+-   [Contribution](#contribution)
+-   [License](#license)
+
+## Installation
+
+To install UserAuthCenter, require it via Composer in your Laravel project:
+
+```bash
+composer require mediadotonedev/userauthcenter
+```
+
+After installing the package, Laravel will automatically discover the package's service provider. No manual registration is required for Laravel versions 5.5 and above.
+
+## Configuration
+
+The package comes with a configurable file `userauthcenter.php`. You can publish this configuration file to your application's `config` directory to customize its settings.
+
+To publish the configuration file, run:
+
+```bash
+php artisan vendor:publish --tag=userauthcenter-config
+```
+
+This will copy `vendor/mediadotonedev/userauthcenter/src/config/userauthcenter.php` to `config/userauthcenter.php`.
+
+## Database Migrations
+
+This package includes its own database migrations for user-related tables or modifications. It's crucial to run these migrations to set up your database correctly.
+
+First, you can publish the migrations to your application's `database/migrations` directory:
+
+```bash
+php artisan vendor:publish --tag=userauthcenter-migrations
+```
+
+After publishing, run your database migrations:
+
+```bash
+php artisan migrate
+```
+
+**Note:** If you already have a `users` table, the package's migration (`update_users_table.php`) might attempt to modify it. Review the migration file to ensure it aligns with your existing database schema.
+
+## Publishing Files
+
+UserAuthCenter allows you to publish several of its internal files to your application. This is useful if you need to modify or extend the package's core logic or components directly.
+
+### Configuration File
+
+As mentioned above, to publish the configuration file:
+
+```bash
+php artisan vendor:publish --tag=userauthcenter-config
+```
+
+### Controllers
+
+To publish the `UserAuthController.php` to `app/Http/Controllers/`:
+
+```bash
+php artisan vendor:publish --tag=userauthcenter-controllers
+```
+
+### Requests
+
+To publish all validation request files to `app/Http/Requests/`:
+
+```bash
+php artisan vendor:publish --tag=userauthcenter-requests
+```
+
+### Rules
+
+To publish custom validation rules (e.g., `EmailOrIranianMobile.php`) to `app/Rules/`:
+
+```bash
+php artisan vendor:publish --tag=userauthcenter-rules
+```
+
+### Models
+
+To publish the `User.php` model to `app/Models/`:
+
+```bash
+php artisan vendor:publish --tag=userauthcenter-models
+```
+
+**Important:** Publishing the `User.php` model might conflict with your existing `App\Models\User.php`. Exercise caution and merge changes manually if necessary, or consider using a different model name within your package if a direct conflict is undesirable.
+
+### Services
+
+To publish service classes (e.g., `UserAuthService.php`, `UserService.php`) to `app/Services/`:
+
+```bash
+php artisan vendor:publish --tag=userauthcenter-services
+```
+
+### Swagger Configuration
+
+If your package includes Swagger/OpenAPI documentation, you can publish its configuration:
+
+```bash
+php artisan l5-swagger:generate
+```
+
+### All Publishable Files
+
+To publish all the above-mentioned files (config, migrations, controllers, requests, rules, models, services, swagger config) with a single command:
+
+```bash
+php artisan vendor:publish --provider="Mediadotonedev\UserAuthCenter\UserauthcenterServiceProvider"
+```
+
+Or, if you define an `userauthcenter-all` tag in your ServiceProvider:
+
+```bash
+php artisan vendor:publish --tag=userauthcenter-all
+```
+
+## Usage
+
+### API Routes
+
+The package provides its own API routes for authentication. These routes are automatically loaded by the package and do not overwrite your application's `routes/api.php`.
+
+The API routes are defined in `vendor/mediadotonedev/userauthcenter/src/routes/userauthcenter_api.php`. You can inspect this file to see the available endpoints.
+
+Typically, these routes would handle:
+
+- User registration (with or without OTP)
+- User login (password-based or OTP-based)
+- OTP generation and verification
+- Password reset functionalities
+
+**Example:** If your package defines `/api/auth/register`, you can access it directly after installation.
+
+### Extending Functionality
+
+Since you can publish various components like controllers, requests, rules, and models, you have the flexibility to extend or override the package's default behavior by modifying the published files.
+
+## Contribution
+
+Feel free to contribute to the UserAuthCenter package. Bug reports, feature requests, and pull requests are welcome.
+
+## License
+
+The UserAuthCenter package is open-sourced software licensed under the MIT license.
+
+
+--- File: ./src/config/userauthcenter.php ---
+
+<?php
+
+return [
+    'auth' => [
+        'guard' => 'api',
+        'token_expiration' => 60, // minutes
+        'route_prefix' => 'auth',
+    ],
+    'api' => [
+        'key' => env('AUTH_CENTER_API_KEY', '98|Kfgqg7LRo9sz08mBw4gzvIAbee50a2d'),
+        'url' => env('AUTH_CENTER_API_URL', 'http://127.0.0.1:8000/api/clients/'),
+    ],
+];
+
+--- File: ./src/Http/Controllers/UserAuthController.php ---
+
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Http\Requests\UserCheckRequest;
+use App\Http\Requests\UserRegisterRequest;
+use App\Http\Requests\UserRegisterVerifyRequest;
+use App\Http\Requests\UserLoginOtpRequest;
+use App\Http\Requests\UserLoginOtpVerifyRequest;
+use App\Http\Requests\UserLoginPasswordRequest;
+use App\Services\UserAuthService;
+
+/**
+ * @OA\Post(
+ *     path="/api/auth/check",
+ *     tags={"Authentication"},
+ *     summary="Check if a username exists",
+ *     description="Checks if a username (email or phone) exists in the system.",
+ *     @OA\RequestBody(
+ *         required=true,
+ *         @OA\JsonContent(
+ *             required={"username"},
+ *             @OA\Property(property="username", type="string", example="user@example.com", description="User's email or phone number")
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Successful response",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="exists", type="boolean", example=true, description="Whether the username exists")
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=400,
+ *         description="Invalid input",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="error", type="string", example="Invalid username")
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=401,
+ *         description="Unauthorized",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="error", type="string", example="Invalid API key")
+ *         )
+ *     )
+ * )
+ */
+
+/**
+ * @OA\Post(
+ *     path="/api/auth/register",
+ *     tags={"Authentication"},
+ *     summary="Register a new user",
+ *     description="Registers a new user with the provided details.",
+ *     @OA\RequestBody(
+ *         required=true,
+ *         @OA\JsonContent(
+ *             required={"username", "name", "nickname", "password", "password_confirmation", "gender", "show_name"},
+ *             @OA\Property(property="username", type="string", example="user@example.com", description="User's email or phone number"),
+ *             @OA\Property(property="name", type="string", example="John Doe", description="Full name of the user"),
+ *             @OA\Property(property="nickname", type="string", example="johndoe", description="User's nickname"),
+ *             @OA\Property(property="password", type="string", format="password", example="Password123!", description="User's password"),
+ *             @OA\Property(property="password_confirmation", type="string", format="password", example="Password123!", description="Password confirmation"),
+ *             @OA\Property(property="gender", type="string", enum={"male", "female", "other"}, example="male", description="User's gender"),
+ *             @OA\Property(property="show_name", type="boolean", example=true, description="Whether to show the user's name publicly")
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Successful registration",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="message", type="string", example="User registered successfully"),
+ *             @OA\Property(property="user_id", type="integer", example=1)
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=400,
+ *         description="Invalid input",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="error", type="string", example="Validation failed")
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=401,
+ *         description="Unauthorized",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="error", type="string", example="Invalid API key")
+ *         )
+ *     )
+ * )
+ */
+
+/**
+ * @OA\Post(
+ *     path="/api/auth/register/verify",
+ *     tags={"Authentication"},
+ *     summary="Verify user registration",
+ *     description="Verifies the user's registration using a verification code.",
+ *     @OA\RequestBody(
+ *         required=true,
+ *         @OA\JsonContent(
+ *             required={"username", "code"},
+ *             @OA\Property(property="username", type="string", example="user@example.com", description="User's email or phone number"),
+ *             @OA\Property(property="code", type="string", example="123456", description="Verification code")
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Successful verification",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="message", type="string", example="User verified successfully"),
+ *             @OA\Property(property="token", type="string", example="Bearer xyz", description="Authentication token")
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=400,
+ *         description="Invalid input",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="error", type="string", example="Invalid verification code")
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=401,
+ *         description="Unauthorized",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="error", type="string", example="Invalid API key")
+ *         )
+ *     )
+ * )
+ */
+
+/**
+ * @OA\Post(
+ *     path="/api/auth/login/otp",
+ *     tags={"Authentication"},
+ *     summary="Request OTP for login",
+ *     description="Requests a one-time password (OTP) for user login.",
+ *     @OA\RequestBody(
+ *         required=true,
+ *         @OA\JsonContent(
+ *             required={"username"},
+ *             @OA\Property(property="username", type="string", example="user@example.com", description="User's email or phone number")
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="OTP sent successfully",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="message", type="string", example="OTP sent to your email/phone")
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=400,
+ *         description="Invalid input",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="error", type="string", example="Invalid username")
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=401,
+ *         description="Unauthorized",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="error", type="string", example="Invalid API key")
+ *         )
+ *     )
+ * )
+ */
+
+/**
+ * @OA\Post(
+ *     path="/api/auth/login/otp/verify",
+ *     tags={"Authentication"},
+ *     summary="Verify OTP for login",
+ *     description="Verifies the OTP for user login.",
+ *     @OA\RequestBody(
+ *         required=true,
+ *         @OA\JsonContent(
+ *             required={"username", "code"},
+ *             @OA\Property(property="username", type="string", example="user@example.com", description="User's email or phone number"),
+ *             @OA\Property(property="code", type="string", example="123456", description="OTP code")
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Successful login",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="message", type="string", example="Login successful"),
+ *             @OA\Property(property="token", type="string", example="Bearer xyz", description="Authentication token")
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=400,
+ *         description="Invalid input",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="error", type="string", example="Invalid OTP code")
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=401,
+ *         description="Unauthorized",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="error", type="string", example="Invalid API key")
+ *         )
+ *     )
+ * )
+ */
+
+/**
+ * @OA\Post(
+ *     path="/api/auth/login/password",
+ *     tags={"Authentication"},
+ *     summary="Login with password",
+ *     description="Logs in a user using their username and password.",
+ *     @OA\RequestBody(
+ *         required=true,
+ *         @OA\JsonContent(
+ *             required={"username", "password"},
+ *             @OA\Property(property="username", type="string", example="user@example.com", description="User's email or phone number"),
+ *             @OA\Property(property="password", type="string", format="password", example="Password123!", description="User's password")
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Successful login",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="message", type="string", example="Login successful"),
+ *             @OA\Property(property="token", type="string", example="Bearer xyz", description="Authentication token")
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=400,
+ *         description="Invalid input",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="error", type="string", example="Invalid credentials")
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=401,
+ *         description="Unauthorized",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="error", type="string", example="Invalid API key")
+ *         )
+ *     )
+ * )
+ */
+
+class UserAuthController extends Controller
+{
+    protected $userAuthService;
+
+    public function __construct()
+    {
+        $this->userAuthService = new UserAuthService();
+    }
+
+    public function check(UserCheckRequest $request)
+    {
+        return $this->userAuthService->userCheck($request);
+    }
+
+    public function register(UserRegisterRequest $request)
+    {
+        return $this->userAuthService->userRegister($request);
+    }
+
+    public function registerVerify(UserRegisterVerifyRequest $request)
+    {
+        return $this->userAuthService->userRegisterVerify($request);
+    }
+
+    public function logiByOtp(UserLoginOtpRequest $request)
+    {
+        return $this->userAuthService->userLoginOtp($request);
+    }
+
+    public function logiByOtpVerify(UserLoginOtpVerifyRequest $request)
+    {
+        return $this->userAuthService->userLoginOtpVerify($request);
+    }
+
+    public function logiByPassword(UserLoginPasswordRequest $request)
+    {
+        return $this->userAuthService->userLogiByPassword($request);
+    }
+}
+
+--- File: ./src/Http/Requests/UserCheckRequest.php ---
+
+<?php
+
+namespace App\Http\Requests;
+
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Validation\ValidationException;
+use App\Rules\EmailOrIranianMobile;
+
+class UserCheckRequest extends FormRequest
+{
+    /**
+     * Determine if the user is authorized to make this request.
+     */
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    /**
+     * Get the validation rules that apply to the request.
+     *
+     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     */
+    public function rules(): array
+    {
+        return [
+            'username' => [
+                'required',
+                'string',
+                'min:10',
+                new EmailOrIranianMobile,
+            ],
+            //
+        ];
+    }
+
+            /**
+     * Handle failed validation.
+     */
+    protected function failedValidation(Validator $validator)
+    {
+        throw new HttpResponseException(response()->json([
+            'message' => 'Validation Errors:',
+            'errors' => $validator->errors(),
+        ], 422));
+    }
+
+    /**
+     * Handle passed validation.
+     */
+    protected function passedValidation()
+    {
+        $username = $this->input('username');
+        if (filter_var($username, FILTER_VALIDATE_EMAIL)) {
+            $this->merge([
+                'email' => $username,
+            ]);
+        } else {
+            $this->merge([
+                'phone' => $username,
+            ]);
+        }
+    }
+
+    /**
+     * Prepare the request data for validation.
+     */
+    protected function prepareForValidation()
+    {
+        $username = $this->input('username');
+
+        if (!filter_var($username, FILTER_VALIDATE_EMAIL)) {
+            $username = $this->normalizeIranianMobile($username);
+        }
+
+        $this->merge([
+            'username' => $username,
+        ]);
+    }
+
+        /**
+     * Normalize an Iranian mobile number.
+     */
+    private function normalizeIranianMobile(string $mobile): string
+    {
+        // remove all non-digit characters
+        $mobile = preg_replace('/[^0-9]/', '', $mobile);
+
+        // remove international code
+        if (str_starts_with($mobile, '0098')) {
+            $mobile = substr($mobile, 4);
+        } elseif (str_starts_with($mobile, '98')) {
+            $mobile = substr($mobile, 2);
+        } elseif (str_starts_with($mobile, '+98')) {
+            $mobile = substr($mobile, 3);
+        }
+
+        // remove leading zeros
+        if (str_starts_with($mobile, '9')) {
+            $mobile = '0' . $mobile;
+        }
+
+        // add leading zero if necessary
+        if (strlen($mobile) !== 11 || !preg_match('/^09[0-9]{9}$/', $mobile)) {
+            throw ValidationException::withMessages([
+                'username' => 'email | phone number invalid',
+            ]);
+        }
+        return $mobile;
+    }
+}
+
+--- File: ./src/Http/Requests/UserRegisterRequest.php ---
+
+<?php
+
+namespace App\Http\Requests;
+
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Contracts\Validation\Validator;
+use App\Rules\EmailOrIranianMobile;
+use Illuminate\Validation\ValidationException;
+
+class UserRegisterRequest extends FormRequest
+{
+    /**
+     * Determine if the user is authorized to make this request.
+     */
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    /**
+     * Get the validation rules that apply to the request.
+     *
+     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     */
+    public function rules(): array
+    {
+        return [
+            'username' => [
+                'required',
+                'string',
+                'min:10',
+                new EmailOrIranianMobile,
+            ],
+            'name' => [
+                'required',
+                'string',
+                'min:2',
+                'max:255',
+            ],
+            'avatar' => [
+                'nullable',
+                'image',
+                'mimes:jpg,png,jpeg,gif,svg',
+                'max:2500',
+            ],
+            'nickname' => [
+                'required_if:show_name,0',
+                'string',
+                'min:2',
+                'max:50',
+            ],
+            'show_name' => [
+                'boolean',
+            ],
+            'gender' => [
+                'in:male,female',
+            ],
+            'password' => [
+                'required',
+                'string',
+                'min:8',
+                'confirmed',
+            ],
+            'password_confirmation' => [
+                'required',
+                'string',
+                'min:8',
+            ],
+        ];
+    }
+
+           /**
+     * Handle failed validation.
+     */
+    protected function failedValidation(Validator $validator)
+    {
+        throw new HttpResponseException(response()->json([
+            'message' => 'Validation Errors:',
+            'errors' => $validator->errors(),
+        ], 422));
+    }
+
+ 
+}
+
+--- File: ./src/Http/Requests/UserLoginPasswordRequest.php ---
+
+<?php
+
+namespace App\Http\Requests;
+
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Contracts\Validation\Validator;
+use App\Rules\EmailOrIranianMobile;
+
+class UserLoginPasswordRequest extends FormRequest
+{
+    /**
+     * Determine if the user is authorized to make this request.
+     */
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    /**
+     * Get the validation rules that apply to the request.
+     *
+     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     */
+    public function rules(): array
+    {
+        return [
+                'username' => ['required','string', 'min:10', new EmailOrIranianMobile],
+                'password' => ['required','string', 'min:6'],
+
+        ];
+    }
+
+    /**
+     * Handle failed validation.
+     */
+    protected function failedValidation(Validator $validator)
+    {
+        throw new HttpResponseException(response()->json([
+            'message' => 'Validation Errors:',
+            'errors' => $validator->errors(),
+        ], 422));
+    }
+
+
+
+}
+
+--- File: ./src/Http/Requests/UserRegisterVerifyRequest.php ---
+
+<?php
+
+namespace App\Http\Requests;
+
+use Illuminate\Foundation\Http\FormRequest;
+use App\Rules\EmailOrIranianMobile;
+use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Contracts\Validation\Validator;
+
+class UserRegisterVerifyRequest extends FormRequest
+{
+    /**
+     * Determine if the user is authorized to make this request.
+     */
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    /**
+     * Get the validation rules that apply to the request.
+     *
+     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     */
+    public function rules(): array
+    {
+        return [
+                'username' => ['required','string','min:10',
+                new EmailOrIranianMobile,
+                ],
+                'code' => ['required','numeric','digits:6'],
+        ];
+    }
+
+
+    /**
+    * Handle failed validation.
+    */
+    protected function failedValidation(Validator $validator)
+    {
+        throw new HttpResponseException(response()->json([
+            'message' => 'Validation Errors:',
+            'errors' => $validator->errors(),
+        ], 422));
+    }
+}
+
+--- File: ./src/Http/Requests/UserLoginOtpRequest.php ---
+
+<?php
+
+namespace App\Http\Requests;
+
+use Illuminate\Foundation\Http\FormRequest;
+use App\Rules\EmailOrIranianMobile;
+use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Http\Exceptions\HttpResponseException;
+
+class UserLoginOtpRequest extends FormRequest
+{
+    /**
+     * Determine if the user is authorized to make this request.
+     */
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    /**
+     * Get the validation rules that apply to the request.
+     *
+     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     */
+    public function rules(): array
+    {
+        return [
+            'username' => ['required', 'string', 'min:10', 'max:255', new EmailOrIranianMobile],
+        ];
+    }
+
+
+    /**
+    * Handle failed validation.
+    */
+    protected function failedValidation(Validator $validator)
+    {
+        throw new HttpResponseException(response()->json([
+            'message' => 'Validation Errors:',
+            'errors' => $validator->errors(),
+        ], 422));
+    }
+}
+
+--- File: ./src/Http/Requests/UserLoginOtpVerifyRequest.php ---
+
+<?php
+
+namespace App\Http\Requests;
+
+use Illuminate\Foundation\Http\FormRequest;
+use App\Rules\EmailOrIranianMobile;
+use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Http\Exceptions\HttpResponseException;
+
+class UserLoginOtpVerifyRequest extends FormRequest
+{
+    /**
+     * Determine if the user is authorized to make this request.
+     */
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    /**
+     * Get the validation rules that apply to the request.
+     *
+     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     */
+    public function rules(): array
+    {
+        return [
+            'username' => ['required', 'string', 'min:10', 'max:255', new EmailOrIranianMobile],
+            'code' => ['required','digits:6'],
+        ];
+    }
+
+        /**
+    * Handle failed validation.
+    */
+    protected function failedValidation(Validator $validator)
+    {
+        throw new HttpResponseException(response()->json([
+            'message' => 'Validation Errors:',
+            'errors' => $validator->errors(),
+        ], 422));
+    }
+}
+
+--- File: ./src/Services/UserAuthService.php ---
+
+<?php
+
+namespace App\Services;
+
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
+
+class UserAuthService
+{
+    /**
+     * Create a new class instance.
+     */
+    public function __construct()
+    {
+        //
+    }
+
+    public function userCheck(Request $request): JsonResponse
+    {
+        $apiKey = env('AUTH_CENTER_API_KEY');
+        $apiUrl = env('AUTH_CENTER_API_URL');
+        $apiUrl .= 'check';
+
+        $response = Http::withHeaders([
+            'Authorization' => "Bearer {$apiKey}",
+            'Accept' => 'application/json',
+        ])->post($apiUrl, [
+            'username' => $request->username,
+        ]);
+
+        if ($response->successful()) {
+            return $response->json();
+        }
+        return $response->json();
+    }
+
+
+    public function userRegister(Request $request): JsonResponse
+    {
+        $data = $request->validated();
+        $apiKey = env('AUTH_CENTER_API_KEY');
+        $apiUrl = env('AUTH_CENTER_API_URL');
+        $apiUrl .= 'register';
+        $response = Http::withHeaders([
+            'Authorization' => "Bearer {$apiKey}",
+            'Accept' => 'application/json',
+            ])->post($apiUrl,[
+                'username' => $data['username'],
+                'name' => $data['name'],
+                'nickname' => $data['nickname'],
+                'password' => $data['password'],
+                'password_confirmation' => $data['password_confirmation'],
+                'gender' => $data['gender'],
+                'show_name' => $data['show_name']
+            ]);
+        if ($response->successful())
+        {
+            return $response->json();
+            
+        }
+            return $response->json();
+    }
+
+    public function userRegisterVerify(Request $request): JsonResponse
+    {
+        $data = $request->validated();
+        $apiKey = env('AUTH_CENTER_API_KEY');
+        $apiUrl = env('AUTH_CENTER_API_URL');
+        $apiUrl .= 'register/verify';
+        $response = Http::withHeaders([
+            'Authorization' => "Bearer {$apiKey}",
+            'Accept' => 'application/json',
+            ])->post($apiUrl,[
+                'username'=> $data['username'],
+                'code' => $data['code'],
+            ]);
+        if ($response->successful())
+        {
+            return $response->json();
+        }
+            return $response->json();
+    }
+
+    public function userLoginOtp(Request $request): JsonResponse
+    {
+        $data = $request->validated();
+        $apiKey = env('AUTH_CENTER_API_KEY');
+        $apiUrl = env('AUTH_CENTER_API_URL');
+        $apiUrl .= 'login/otp';
+        $response = Http::withHeaders([
+            'Authorization' => "Bearer {$apiKey}",
+            'Accept' => 'application/json',
+            ])->post($apiUrl,[
+                'username'=> $data['username']
+            ]);
+        if ($response->successful())
+        {
+            return $response->json();
+        }
+            return $response->json();
+    }
+
+    public function userLoginOtpVerify(Request $request): JsonResponse
+    {
+        $data = $request->validated();
+        $apiKey = env('AUTH_CENTER_API_KEY');
+        $apiUrl = env('AUTH_CENTER_API_URL');
+        $apiUrl .= 'login/otp/verify';
+        $response = Http::withHeaders([
+            'Authorization' => "Bearer {$apiKey}",
+            'Accept' => 'application/json',
+            ])->post($apiUrl,[
+                'username'=> $data['username'],
+                'code' => $data['code'],
+            ]);
+        if ($response->successful())
+        {
+            return $response->json();
+        }
+            return $response->json();
+    }
+
+    public function userLogiByPassword($request): JsonResponse
+    {
+        $data = $request->validated();
+        $apiKey = env('AUTH_CENTER_API_KEY');
+        $apiUrl = env('AUTH_CENTER_API_URL');
+        $apiUrl .= 'login/password';
+        $response = Http::withHeaders([
+            'Authorization' => "Bearer {$apiKey}",
+            'Accept' => 'application/json',
+            ])->post($apiUrl,[
+                'username'=> $data['username'],
+                'password' => $data['password'],
+            ]);
+        if ($response->successful())
+        {
+                    // Generate token
+            $token = $adminUser->createToken('auth_token')->plainTextToken;
+            return $response->json();
+        }
+            return $response->json();
+    }
+
+}
+
+--- File: ./src/Services/UserService.php ---
+
+<?php
+
+namespace App\Services;
+
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
+
+class UserAuthService
+{
+    protected $apiKey;
+    protected $apiUrl;
+    /**
+     * Create a new class instance.
+     */
+    public function __construct()
+    {
+        //
+        $this->apiKey = env('AUTH_CENTER_API_KEY');
+        $this->apiUrl = env('AUTH_CENTER_API_URL');
+    }
+
+    public function userCheck(Request $request): JsonResponse
+    {
+        $data = $request->validated();
+        $apiUrl = $this->apiUrl . 'check';
+        $response = Http::withHeaders([
+            'Authorization' => "Bearer {$this->apiKey}",
+            'Accept' => 'application/json',
+        ])->post($apiUrl, [
+            'username' => $data['username'],
+        ]);
+
+        if ($response->successful()) {
+            return $response->json();
+        }
+        return $response->json();
+    }
+
+
+    public function userRegister(Request $request): JsonResponse
+    {
+        $data = $request->validated();
+        $apiUrl = $this->apiUrl . 'register';
+        $response = Http::withHeaders([
+            'Authorization' => "Bearer {$$this->apiKey}",
+            'Accept' => 'application/json',
+            ])->post($apiUrl,[
+                'username' => $data['username'],
+                'name' => $data['name'],
+                'nickname' => $data['nickname'],
+                'password' => $data['password'],
+                'password_confirmation' => $data['password_confirmation'],
+                'gender' => $data['gender'],
+                'show_name' => $data['show_name']
+            ]);
+        if ($response->successful())
+        {
+            return $response->json();
+
+        }
+            return $response->json();
+    }
+
+    public function userRegisterVerify(Request $request): JsonResponse
+    {
+        $data = $request->validated();
+        $apiUrl = $this->apiUrl . 'register/verify';
+        $response = Http::withHeaders([
+            'Authorization' => "Bearer {$this->apiKey}",
+            'Accept' => 'application/json',
+            ])->post($apiUrl,[
+                'username'=> $data['username'],
+                'code' => $data['code'],
+            ]);
+        if ($response->successful())
+        {
+            return $response->json();
+        }
+            return $response->json();
+    }
+
+    public function userLoginOtp(Request $request): JsonResponse
+    {
+        $data = $request->validated();
+
+        $apiUrl = $this->apiUrl . 'login/otp';
+        $response = Http::withHeaders([
+            'Authorization' => "Bearer {$this->apiKey}",
+            'Accept' => 'application/json',
+            ])->post($apiUrl,[
+                'username'=> $data['username']
+            ]);
+        if ($response->successful())
+        {
+            return $response->json();
+        }
+            return $response->json();
+    }
+
+    public function userLoginOtpVerify(Request $request): JsonResponse
+    {
+        $data = $request->validated();
+
+        $apiUrl = $this->apiUrl . 'login/otp/verify';
+        $response = Http::withHeaders([
+            'Authorization' => "Bearer {$this->apiKey}",
+            'Accept' => 'application/json',
+            ])->post($apiUrl,[
+                'username'=> $data['username'],
+                'code' => $data['code'],
+            ]);
+        if ($response->successful())
+        {
+            return $response->json();
+        }
+            return $response->json();
+    }
+
+    public function userLogiByPassword($request): JsonResponse
+    {
+        $data = $request->validated();
+
+        $apiUrl = $this->apiUrl . 'login/password';
+        $response = Http::withHeaders([
+            'Authorization' => "Bearer {$this->apiKey}",
+            'Accept' => 'application/json',
+            ])->post($apiUrl,[
+                'username'=> $data['username'],
+                'password' => $data['password'],
+            ]);
+        if ($response->successful())
+        {
+                    // Generate token
+            //$token = $adminUser->createToken('auth_token')->plainTextToken;
+            return $response->json();
+        }
+            return $response->json();
+    }
+
+}
+
+--- File: ./src/routes/userauthcenter_api.php ---
+
+<?php
+
+use App\Http\Controllers\UserAuthController;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
+/*
+Route::get('/user', function (Request $request) {
+    return $request->user();
+})->middleware('auth:sanctum');
+*/
+Route::prefix('users')->group(function () {
+    //user sanctum
+    Route::middleware(['auth:sanctum'])->group(function () {
+
+    });
+    /***auth user chdeck/register/registerVerify/loginOtp/loginOtpVerify/login password */
+    Route::post('/check',[UserAuthController::class,'check']);
+    Route::post('/register',[UserAuthController::class,'register']);
+    Route::post('/register/verify',[UserAuthController::class,'registerVerify']);
+    Route::post('/login/otp',[UserAuthController::class,'logiByOtp']);
+    Route::post('/login/otp/verify',[UserAuthController::class,'logiByOtpVerify']);
+    Route::post('/login/password',[UserAuthController::class,'logiByPassword']);
+
+    /***update user profile(name/gender/avatar) and password */
+    /*
+    Route::post('update/{user_id}',[UserController::class],'userUpdate');
+
+    Route::resources([UserController::class]);
+    */
+
+});
+
+--- File: ./src/Models/User.php ---
+
+<?php
+
+namespace App\Models;
+
+// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Notifications\Notifiable;
+
+class User extends Authenticatable
+{
+    /** @use HasFactory<\Database\Factories\UserFactory> */
+    use HasFactory, Notifiable, SoftDeletes;
+
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var list<string>
+     */
+    protected $fillable = [
+        'name',
+        'email',
+        'password',
+        'avatar',
+        'nickname',
+        'phone',
+        'phone_verified_at',
+        'birth_date',
+        'gender',
+    ];
+    /**
+     * The attributes that should be hidden for serialization.
+     *
+     * @var list<string>
+     */
+    protected $hidden = [
+        'password',
+        'remember_token',
+    ];
+
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+
+    protected function casts(): array
+    {
+        return [
+            'email_verified_at' => 'datetime',
+            'phone_verified_at' => 'datetime',
+            'birth_date' => 'datetime',
+            'password' => 'hashed',
+            'gender' => 'string',
+        ];
+    }
+}
+
+--- File: ./src/UserAuthCenterServiceProvider.php ---
+
+<?php
+
+namespace Mediadotonedev\UserAuthCenter;
+
+use Illuminate\Support\ServiceProvider;
+
+class UserauthcenterServiceProvider extends ServiceProvider
+{
+    public function register()
+    {
+        // Merge configuration file from package to application's config directory
+        $this->mergeConfigFrom(__DIR__ . '/config/userauthcenter.php', 'userauthcenter');
+    }
+
+    public function boot()
+    {
+        // Publish configuration file
+        $this->publishes([
+            __DIR__ . '/config/userauthcenter.php' => config_path('userauthcenter.php'),
+        ], 'userauthcenter-config');
+
+        // Publish migrations files
+        $this->publishes([
+            __DIR__ . '/database/migrations' => database_path('migrations'),
+        ], 'userauthcenter-migrations');
+
+        // --- Publishing other files (as per your request, assuming you want them to be editable) ---
+
+        // Publish Controllers
+        // Path adjusted based on your file structure: userauthcenter/src/Http/Controllers/UserAuthController.php
+        $this->publishes([
+            __DIR__ . '/Http/Controllers/UserAuthController.php' => app_path('Http/Controllers/UserAuthController.php'),
+        ], 'userauthcenter-controllers');
+
+        // Publish Requests
+        // Path adjusted based on your file structure, correcting "Requsts" to "Requests"
+        $this->publishes([
+            __DIR__ . '/Http/Requests/UserCheckRequest.php' => app_path('Http/Requests/UserCheckRequest.php'),
+            __DIR__ . '/Http/Requests/UserRegisterRequest.php' => app_path('Http/Requests/UserRegisterRequest.php'),
+            __DIR__ . '/Http/Requests/UserLoginPasswordRequest.php' => app_path('Http/Requests/UserLoginPasswordRequest.php'),
+            __DIR__ . '/Http/Requests/UserRegisterVerifyRequest.php' => app_path('Http/Requests/UserRegisterVerifyRequest.php'),
+            __DIR__ . '/Http/Requests/UserLoginOtpRequest.php' => app_path('Http/Requests/UserLoginOtpRequest.php'),
+            __DIR__ . '/Http/Requests/UserLoginOtpVerifyRequest.php' => app_path('Http/Requests/UserLoginOtpVerifyRequest.php'),
+        ], 'userauthcenter-requests');
+
+        // Publish Rules
+        // Path adjusted based on your file structure: userauthcenter/src/Rules/EmailOrIranianMobile.php
+        $this->publishes([
+            __DIR__ . '/Rules/EmailOrIranianMobile.php' => app_path('Rules/EmailOrIranianMobile.php'),
+        ], 'userauthcenter-rules');
+
+        // Publish Models (Use with caution for User model to avoid conflict with main App\Models\User)
+        // Path adjusted based on your file structure: userauthcenter/src/Models/User.php
+        $this->publishes([
+            __DIR__ . '/Models/User.php' => app_path('Models/User.php'),
+        ], 'userauthcenter-models');
+
+        // --- NEW: Publish Services ---
+        // Path adjusted based on your file structure: userauthcenter/src/Services/
+        $this->publishes([
+            __DIR__ . '/Services/UserAuthService.php' => app_path('Services/UserAuthService.php'),
+            __DIR__ . '/Services/UserService.php' => app_path('Services/UserService.php'),
+        ], 'userauthcenter-services');
+
+
+        // --- Important: Routes handling ---
+        // DO NOT publish the routes/userauthcenter_api.php file to routes/api.php of the main project.
+        // Instead, load it directly from the package. This prevents overwriting the main project's routes.
+        // Make sure you have renamed userauthcenter/src/routes/api.php to userauthcenter/src/routes/userauthcenter_api.php
+        $this->loadRoutesFrom(__DIR__ . '/routes/userauthcenter_api.php'); // Changed filename here
+
+        // Load migrations (essential for package functionality, not published)
+        $this->loadMigrationsFrom(__DIR__ . '/database/migrations');
+
+        // --- Optional: A single tag for all publishes ---
+        // If you define this, make sure all the paths are correct and match the individual publishes above.
+        /*
+        $this->publishes([
+            __DIR__ . '/config/userauthcenter.php' => config_path('userauthcenter.php'),
+            __DIR__ . '/database/migrations' => database_path('migrations'),
+            __DIR__ . '/Http/Controllers/UserAuthController.php' => app_path('Http/Controllers/UserAuthController.php'),
+            __DIR__ . '/Http/Requests/UserCheckRequest.php' => app_path('Http/Requests/UserCheckRequest.php'),
+            __DIR__ . '/Http/Requests/UserRegisterRequest.php' => app_path('Http/Requests/UserRegisterRequest.php'),
+            __DIR__ . '/Http/Requests/UserLoginPasswordRequest.php' => app_path('Http/Requests/UserLoginPasswordRequest.php'),
+            __DIR__ . '/Http/Requests/UserRegisterVerifyRequest.php' => app_path('Http/Requests/UserRegisterVerifyRequest.php'),
+            __DIR__ . '/Http/Requests/UserLoginOtpRequest.php' => app_path('Http/Requests/UserLoginOtpRequest.php'),
+            __DIR__ . '/Http/Requests/UserLoginOtpVerifyRequest.php' => app_path('Http/Requests/UserLoginOtpVerifyRequest.php'),
+            __DIR__ . '/Rules/EmailOrIranianMobile.php' => app_path('Rules/EmailOrIranianMobile.php'),
+            __DIR__ . '/Models/User.php' => app_path('Models/User.php'),
+            __DIR__ . '/Services/UserAuthService.php' => app_path('Services/UserAuthService.php'), // Added Services
+            __DIR__ . '/Services/UserService.php' => app_path('Services/UserService.php'), // Added Services
+            // DO NOT include routes file here if you don't want it to overwrite
+            __DIR__ . '/config/l5-swagger.php' => config_path('l5-swagger.php'),
+        ], 'userauthcenter-all');
+        */
+    }
+}
+
+
+
+--- File: ./src/Rules/EmailOrIranianMobile.php ---
+
+<?php
+
+namespace App\Rules;
+
+use Closure;
+use Illuminate\Contracts\Validation\ValidationRule;
+
+class EmailOrIranianMobile implements ValidationRule
+{
+    public function validate(string $attribute, mixed $value, Closure $fail): void
+    {
+        // check email
+        if (filter_var($value, FILTER_VALIDATE_EMAIL)) {
+            return; // check email and validation
+        }
+
+        // check iranian phone number
+        // remove char none digit
+        $mobile = preg_replace('/[^0-9]/', '', $value);
+
+        // check len phone number
+        if (str_starts_with($mobile, '0098')) {
+            $mobile = substr($mobile, 4);
+        } elseif (str_starts_with($mobile, '98')) {
+            $mobile = substr($mobile, 2);
+        } elseif (str_starts_with($mobile, '+98')) {
+            $mobile = substr($mobile, 3);
+        }
+
+        // add zero perfix
+        if (str_starts_with($mobile, '9')) {
+            $mobile = '0' . $mobile;
+        }
+
+        // check len and format
+        if (strlen($mobile) !== 11 || !preg_match('/^09[0-9]{9}$/', $mobile)) {
+            $fail('The :attribute field must be a valid Iranian email or mobile number.');
+        }
+    }
+}
+
+--- File: ./src/database/migrations/2025_06_08_103828_update_users_table.php ---
+
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+
+        Schema::table('users', function (Blueprint $table) {
+            // افزودن ستون‌های جدید
+            $table->string('avatar')->nullable()->comment('عکس پروفایل')->after('name');
+            $table->string('nickname')->nullable()->comment('اسم مستعار')->after('avatar');
+            $table->string('phone')->unique()->index()->nullable()->comment('شماره موبایل')->after('nickname');
+            $table->timestamp('phone_verified_at')->nullable()->comment('تاریخ تایید شماره موبایل')->after('phone');
+            $table->timestamp('birth_date')->nullable()->comment('تاریخ تولد')->after('email_verified_at');
+            $table->enum('gender', ['male', 'female'])->nullable()->comment('جنسیت')->after('birth_date');
+            $table->softDeletes()->comment('حذف نرم');
+
+            // اصلاح ستون‌های موجود
+            $table->string('name')->comment('نام کاربر')->nullable()->change();
+            $table->string('email')->nullable()->index()->comment('ایمیل')->change();
+            $table->string('password')->comment('رمز عبور')->change();
+            $table->timestamp('email_verified_at')->nullable()->comment('تاریخ تایید ایمیل')->change();
+        });
+
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+            Schema::table('users', function (Blueprint $table) {
+                // حذف ستون‌های جدید
+                $table->dropColumn(['avatar', 'nickname', 'phone', 'phone_verified_at', 'birth_date', 'gender']);
+                $table->dropSoftDeletes();
+
+                // بازگرداندن ستون‌های اصلاح‌شده به حالت اولیه
+                $table->string('name')->comment(null)->nullable(false)->change();
+                $table->string('email')->unique()->index(false)->comment(null)->nullable(false)->change();
+                $table->string('password')->comment(null)->change();
+                $table->timestamp('email_verified_at')->nullable()->comment(null)->change();
+        });
+    }
+};
