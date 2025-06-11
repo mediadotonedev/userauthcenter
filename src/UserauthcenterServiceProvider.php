@@ -4,7 +4,7 @@ namespace Mediadotonedev\UserAuthCenter;
 
 use Illuminate\Support\ServiceProvider;
 
-class UserauthcenterServiceProvider extends ServiceProvider
+class UserAuthCenterServiceProvider extends ServiceProvider
 {
     public function register()
     {
@@ -95,5 +95,4 @@ class UserauthcenterServiceProvider extends ServiceProvider
         */
     }
 }
-
 
