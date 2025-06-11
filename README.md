@@ -148,6 +148,15 @@ Or, if you define an `userauthcenter-all` tag in your ServiceProvider:
 php artisan vendor:publish --tag=userauthcenter-all
 ```
 
+### API Routes
+
+add environment packacage connect to api  append .env file.
+
+```bash
+USERAUTHCENTER_API_KEY=
+USERAUTHCENTER_API_URL=
+```
+
 ## Usage
 
 ### API Routes
