@@ -180,6 +180,12 @@ Since you can publish various components like controllers, requests, rules, and 
 
 ## Contribution
 
+## update package 
+```bash
+composer dump-autoload
+php artisan config:clear
+```
+
 Feel free to contribute to the UserAuthCenter package. Bug reports, feature requests, and pull requests are welcome.
 
 ## License
