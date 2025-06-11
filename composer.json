@@ -34,8 +34,8 @@
     "extra": {
         "laravel": {
             "providers": [
-                "Mediadotonedev\\UserAuthCenter\\UserauthcenterServiceProvider"
-            ],
+            	"Mediadotonedev\\UserAuthCenter\\UserAuthCenterServiceProvider"
+            	],
             "publishable": {
                 "config": {
                     "userauthcenter.php": "config/userauthcenter.php"
