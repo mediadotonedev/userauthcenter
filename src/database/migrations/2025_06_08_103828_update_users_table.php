@@ -19,7 +19,7 @@ return new class extends Migration
             $table->timestamp('phone_verified_at')->nullable()->comment('تاریخ تایید شماره موبایل')->after('phone');
             $table->timestamp('birth_date')->nullable()->comment('تاریخ تولد')->after('email_verified_at');
             $table->enum('gender', ['male', 'female'])->nullable()->comment('جنسیت')->after('birth_date');
-            $table->bigInteger('fk_client_id')->index()->unique()->nullable()->comment('آیدی کاربر در سیستم مرکزی');
+            $table->bigInteger('fk_client_id')->unique()->nullable()->comment('آیدی کاربر در سیستم مرکزی');
             $table->softDeletes()->comment('حذف نرم');
 
             // اصلاح ستون‌های موجود
@@ -44,7 +44,7 @@ return new class extends Migration
                 $table->dropUnique(['email']);
             }
 
-            // حذف ایندکس‌های موجود روی ستون phone
+            // حذف ایندکس‌های موجود روی ستون email
             if (Schema::hasIndex('users', 'users_phone_index')) {
                 $table->dropIndex(['phone']);
             }
@@ -53,7 +53,7 @@ return new class extends Migration
                 $table->dropUnique(['phone']);
             }
 
-            // حذف ایندکس‌های موجود روی ستون fk_client_id
+            // حذف ایندکس‌های موجود روی ستون email
             if (Schema::hasIndex('users', 'users_fk_client_id_index')) {
                 $table->dropIndex(['fk_client_id']);
             }
@@ -68,7 +68,7 @@ return new class extends Migration
 
             // بازگرداندن ستون‌های اصلاح‌شده به حالت اولیه
             $table->string('name')->comment(null)->nullable(false)->change();
-            $table->string('email')->unique()->comment(null)->nullable(false)->change();
+            $table->string('email')->index()->unique()->comment(null)->nullable(false)->change();
             $table->string('password')->comment(null)->change();
             $table->timestamp('email_verified_at')->nullable()->comment(null)->change();
         });
