@@ -51,6 +51,8 @@ class UserAuthCenterServiceProvider extends ServiceProvider
 
         // Publish Models (Use with caution for User model to avoid conflict with main App\Models\User)
         // Path adjusted based on your file structure: userauthcenter/src/Models/User.php
+                // Publish Models (Use with caution for User model to avoid conflict with main App\Models\User)
+        // Path adjusted based on your file structure: userauthcenter/src/Models/User.php
         $this->publishes([
             __DIR__ . '/Models/User.php' => app_path('Models/User.php'),
         ], 'userauthcenter-models', true);
